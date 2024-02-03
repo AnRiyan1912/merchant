@@ -10,23 +10,40 @@ import (
 )
 
 var (
-    ErrUsernameTaken   = errors.New("username is already taken")
-    ErrUserNotFound    = errors.New("user not found")
-    ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrUsernameTaken      = errors.New("username is already exists")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
-
-
-func RegisterUser(user *models.User, person *models.Person) error {
-	existingUser := models.User{}
-	if err := initializers.DB.Where("username = ?", user.Username).First(&existingUser).Error; err == nil {
-		return  ErrUsernameTaken
+func RegisterUser(request *models.RegisterRequest) error {
+	user := models.User{
+		Username: request.Username,
+		Password: request.Password,
 	}
-	if err := initializers.DB.Create(person).Error; err != nil {
+
+	person := models.Person{
+		Fullname: request.Person.Fullname,
+		Email:    request.Person.Email,
+		Address:  request.Person.Address,
+	}
+
+	if err := initializers.DB.Create(&person).Error; err != nil {
 		return err
 	}
+
+	if person.Id == 0 {
+		return errors.New("failed to get Person ID")
+	}
+
 	user.PersonID = person.Id
-	if err := initializers.DB.Create(user).Error; err != nil {
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.Password = string(hashedPassword)
+
+	if err := initializers.DB.Create(&user).Error; err != nil {
 		return err
 	}
 
@@ -34,20 +51,16 @@ func RegisterUser(user *models.User, person *models.Person) error {
 }
 
 func AuthenticateUser(username, password string) (string, error) {
-    // Temukan pengguna berdasarkan nama pengguna
+
     user := models.User{}
     if err := initializers.DB.Where("username = ?", username).First(&user).Error; err != nil {
-        // Pengguna tidak ditemukan
+     
         return "", ErrUserNotFound
     }
-
-    // Verifikasi kata sandi
     if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-        // Kata sandi tidak cocok
+
         return "", ErrInvalidCredentials
     }
-
-    // Kata sandi cocok, hasilkan token JWT
     token, err := utils.GenerateToken(username)
     if err != nil {
         return "", err

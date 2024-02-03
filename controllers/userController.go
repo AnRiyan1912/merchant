@@ -1,13 +1,11 @@
 package controllers
 
 import (
-	// "encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"rename.com/andreriyant/go-crud/initializers"
 
-	// "gorm.io/gorm"
 	"rename.com/andreriyant/go-crud/models"
 )
 

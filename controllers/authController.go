@@ -10,16 +10,21 @@ import (
 )
 
 func Register(c *gin.Context) {
-  var user models.User
-  var person models.Person
+	var registerRequest models.RegisterRequest
 
-  if err := services.RegisterUser(&user, &person); err != nil {
-	errorhandler.HandleError(c, err)
-	return
-  }
-  c.JSON(http.StatusOK, gin.H{"message": "User registered successfully"})
+	if err := c.ShouldBindJSON(&registerRequest); err != nil {
+		errorhandler.HandleError(c, err)
+		return
+	}
 
+	if err := services.RegisterUser(&registerRequest); err != nil {
+		errorhandler.HandleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User registered successfully"})
 }
+
 
 func Login(c *gin.Context) {
 	var loginRequest struct {
